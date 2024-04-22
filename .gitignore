@@ -1,0 +1,5 @@
+/target
+*.bak
+
+# Ignore my local config file, which contains a path to `mold`.
+.cargo/
