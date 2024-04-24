@@ -114,13 +114,28 @@ impl BlockHash {
         }
         Ok(BlockHash(bytes))
     }
+
+    /// Count the number of leading zero **bits** in the hash.
+    pub fn leading_zero_bits(&self) -> u32 {
+        let mut leading_zeros = 0;
+        for &value in self.inner().iter() {
+            debug_assert!((value == 0) == (value.leading_zeros() == 8));
+            if value == 0 {
+                leading_zeros += 8;
+            } else {
+                leading_zeros += value.leading_zeros();
+                break;
+            }
+        }
+        leading_zeros
+    }
 }
 
 impl std::fmt::Display for BlockHash {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "#")?;
         for byte in self.0.iter() {
-            write!(f, "{:02x}", byte)?; // FIXME
+            write!(f, "{:02x}", byte)?;
         }
         Ok(())
     }
@@ -179,19 +194,7 @@ impl Block {
     /// Check if the nonce of the block is valid. Note: this does not check whether the transactions
     /// in the block are valid.
     pub fn is_valid_nonce(&self) -> bool {
-        let mut required_zeros = MINING_DIFFICULTY;
-        for zeros in self.hash().inner().iter().map(|b| b.leading_zeros()) {
-            if zeros >= required_zeros {
-                return true;
-            }
-            if zeros == 8 {
-                // FIXME
-                required_zeros -= 8;
-            } else {
-                return false;
-            }
-        }
-        required_zeros == 0
+        self.hash().leading_zero_bits() >= MINING_DIFFICULTY
     }
 }
 
@@ -229,5 +232,13 @@ mod tests {
         for _ in 0..3 {
             block = attempt_mining_block(block.hash(), miner, vec![], 0..=u64::MAX).unwrap();
         }
+    }
+
+    #[test]
+    fn leading_zero_bits() {
+        let mut block = Block::genesis();
+        let miner = Address::new(2);
+        block = attempt_mining_block(block.hash(), miner, vec![], 0..=u64::MAX).unwrap();
+        assert!(block.hash().leading_zero_bits() >= MINING_DIFFICULTY);
     }
 }
