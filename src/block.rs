@@ -120,7 +120,7 @@ impl std::fmt::Display for BlockHash {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         write!(f, "#")?;
         for byte in self.0.iter() {
-            write!(f, "{:02x}", byte)?;
+            write!(f, "{:02x}", byte)?; // FIXME
         }
         Ok(())
     }
@@ -185,6 +185,7 @@ impl Block {
                 return true;
             }
             if zeros == 8 {
+                // FIXME
                 required_zeros -= 8;
             } else {
                 return false;

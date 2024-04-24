@@ -12,7 +12,12 @@ pub async fn run_node(node: Arc<RwLock<Node>>) {
 
         let mut writable_node = node.write().await;
         writable_node.achieve_consensus().await;
-        writable_node.mining().await;
+        if writable_node.mining() {
+            network()
+                .await
+                .broadcast_block(writable_node.blockchain().last_block(), writable_node.blockchain.len(), writable_node.address())
+                .await;
+        }
 
         // It's important to release all lock before yielding, to avoid deadlocks.
         drop(writable_node);
@@ -74,9 +79,8 @@ impl Node {
         &self.mempool
     }
 
-    /// Attempt to mine a new block. If successful, the block is appended to the local blockchain
-    /// and broadcasted to the network.
-    async fn mining(&mut self) {
+    /// Attempt to mine a new block. If successful, the method returns true.
+    fn mining(&mut self) -> bool {
         let last_nonce = self.next_nonce + NODE_MINING_NONCE_STEP;
         let opt_block = attempt_mining_block(
             self.blockchain.last_hash().clone(),
@@ -92,13 +96,10 @@ impl Node {
             }
             self.next_nonce = 0;
             self.mempool.reset(&self.blockchain);
-
-            network()
-                .await
-                .broadcast_block(&block, self.blockchain.len(), self.address)
-                .await;
+            true
         } else {
             self.next_nonce = last_nonce;
+            false
         }
     }
 
