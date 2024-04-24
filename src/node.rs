@@ -212,7 +212,7 @@ impl Node {
             error!("Node {self}: Rejecting transaction {block_transaction}");
             return Err(());
         };
-        error!("Node {self}: Accepted transaction {block_transaction}");
+        info!("Node {self}: Accepted transaction {block_transaction}");
         network()
             .await
             .broadcast_transaction(&block_transaction, self.address)
